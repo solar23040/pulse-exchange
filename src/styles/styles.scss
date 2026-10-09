@@ -1,0 +1,55 @@
+@use 'tokens' as *;
+@use 'typography';
+@use 'animations';
+@use 'utilities';
+@use 'components';
+
+// Global resets
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: $ink-900;
+  color: $ink-100;
+  font-family: $font-display;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: $ink-800;
+}
+::-webkit-scrollbar-thumb {
+  background: $ink-500;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: $ink-400;
+}
+
+a {
+  color: $ice-500;
+  text-decoration: none;
+}
+
+// Focus visible
+:focus-visible {
+  outline: 2px solid $violet-500;
+  outline-offset: 2px;
+}
+
+// Colorblind mode
+[data-colorblind='true'] {
+  .gain, .text-gain { color: $cb-gain !important; }
+  .loss, .text-loss { color: $cb-loss !important; }
+}

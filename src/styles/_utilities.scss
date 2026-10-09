@@ -1,0 +1,137 @@
+@use 'tokens' as *;
+
+// === Layout ===
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+
+// Gap
+@for $i from 1 through 8 {
+  .gap-#{$i} { gap: $i * 4px; }
+}
+
+// Padding
+@for $i from 1 through 8 {
+  .p-#{$i} { padding: $i * 4px; }
+  .px-#{$i} { padding-left: $i * 4px; padding-right: $i * 4px; }
+  .py-#{$i} { padding-top: $i * 4px; padding-bottom: $i * 4px; }
+  .pt-#{$i} { padding-top: $i * 4px; }
+  .pb-#{$i} { padding-bottom: $i * 4px; }
+  .pl-#{$i} { padding-left: $i * 4px; }
+  .pr-#{$i} { padding-right: $i * 4px; }
+}
+
+// Margin
+@for $i from 1 through 8 {
+  .m-#{$i} { margin: $i * 4px; }
+  .mx-#{$i} { margin-left: $i * 4px; margin-right: $i * 4px; }
+  .my-#{$i} { margin-top: $i * 4px; margin-bottom: $i * 4px; }
+  .mt-#{$i} { margin-top: $i * 4px; }
+  .mb-#{$i} { margin-bottom: $i * 4px; }
+}
+
+// === Glassmorphism ===
+.glass {
+  background: rgba(17, 19, 26, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: rgba(17, 19, 26, 0.88);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+// === Cards ===
+.card {
+  background: $ink-700;
+  border: 1px solid $ink-500;
+  border-radius: $radius-md;
+  padding: $space-4;
+}
+
+.card-elevated {
+  background: $ink-600;
+  border: 1px solid $ink-400;
+  border-radius: $radius-md;
+  padding: $space-4;
+  box-shadow: $shadow-md;
+}
+
+.card-interactive {
+  @extend .card;
+  cursor: pointer;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  &:hover {
+    border-color: $violet-500;
+    box-shadow: $shadow-glow-violet;
+  }
+}
+
+// === Text utilities ===
+.text-muted { color: $ink-300; }
+.text-secondary { color: $ink-200; }
+.text-primary { color: $ink-100; }
+.text-bright { color: $ink-50; }
+.text-accent { color: $violet-500; }
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// === Scrollbar ===
+.scrollbar-thin {
+  &::-webkit-scrollbar { width: 4px; height: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: $ink-400;
+    border-radius: 2px;
+  }
+}
+
+// === Display ===
+.hidden { display: none; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.overflow-auto { overflow: auto; }
+.overflow-hidden { overflow: hidden; }
+.cursor-pointer { cursor: pointer; }
+.select-none { user-select: none; }
+.pointer-events-none { pointer-events: none; }

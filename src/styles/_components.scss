@@ -1,0 +1,266 @@
+@use 'tokens' as *;
+
+// === Buttons ===
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  font-family: $font-display;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  user-select: none;
+  outline: none;
+  line-height: 1.4;
+
+  &:focus-visible {
+    outline: 2px solid $violet-500;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+.btn-primary {
+  @extend .btn;
+  background: $violet-500;
+  color: white;
+  &:hover { background: $violet-400; }
+  &:active { background: $violet-600; }
+}
+
+.btn-success {
+  @extend .btn;
+  background: $gain;
+  color: $ink-900;
+  &:hover { background: lighten($gain, 5%); }
+  &:active { background: $gain-dim; color: white; }
+}
+
+.btn-danger {
+  @extend .btn;
+  background: $loss;
+  color: white;
+  &:hover { background: lighten($loss, 8%); }
+  &:active { background: $loss-dim; }
+}
+
+.btn-ghost {
+  @extend .btn;
+  background: transparent;
+  color: $ink-100;
+  border: 1px solid $ink-500;
+  &:hover {
+    background: $ink-600;
+    border-color: $ink-400;
+  }
+  &:active { background: $ink-500; }
+}
+
+.btn-icon {
+  @extend .btn;
+  background: transparent;
+  color: $ink-200;
+  padding: $space-2;
+  border-radius: $radius-sm;
+  &:hover {
+    background: $ink-600;
+    color: $ink-50;
+  }
+}
+
+.btn-sm {
+  padding: $space-1 $space-3;
+  font-size: 11px;
+}
+
+.btn-lg {
+  padding: $space-3 $space-6;
+  font-size: 15px;
+}
+
+// === Inputs ===
+.input {
+  background: $ink-800;
+  border: 1px solid $ink-500;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  color: $ink-50;
+  font-family: $font-display;
+  font-size: 14px;
+  outline: none;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  width: 100%;
+
+  &::placeholder {
+    color: $ink-300;
+  }
+
+  &:focus {
+    border-color: $violet-500;
+    box-shadow: 0 0 0 3px $violet-glow;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.input-sm {
+  @extend .input;
+  padding: $space-1 $space-2;
+  font-size: 12px;
+}
+
+.input-mono {
+  @extend .input;
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+}
+
+// === Select ===
+.select {
+  @extend .input;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b92a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+// === Badges ===
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-2;
+  border-radius: $radius-full;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-bullish {
+  @extend .badge;
+  background: $gain-bg-strong;
+  color: $gain;
+}
+
+.badge-bearish {
+  @extend .badge;
+  background: $loss-bg-strong;
+  color: $loss;
+}
+
+.badge-urgent {
+  @extend .badge;
+  background: $warn-bg;
+  color: $warn;
+}
+
+.badge-neutral {
+  @extend .badge;
+  background: rgba($ink-300, 0.15);
+  color: $ink-200;
+}
+
+.badge-violet {
+  @extend .badge;
+  background: $violet-glow;
+  color: $violet-400;
+}
+
+// === Divider ===
+.divider {
+  border: none;
+  border-top: 1px solid $ink-500;
+  margin: $space-3 0;
+}
+
+// === Tags ===
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px $space-2;
+  border-radius: $radius-sm;
+  font-size: 11px;
+  font-weight: 500;
+  background: $ink-600;
+  color: $ink-200;
+  border: 1px solid $ink-500;
+}
+
+// === Toggle ===
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: $ink-500;
+  border-radius: $radius-full;
+  cursor: pointer;
+  transition: background $transition-fast;
+  border: none;
+  outline: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: $ink-100;
+    border-radius: 50%;
+    transition: transform $transition-fast;
+  }
+
+  &.active {
+    background: $violet-500;
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $violet-500;
+    outline-offset: 2px;
+  }
+}
+
+// === Tooltip ===
+.tooltip-trigger {
+  position: relative;
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: $space-1 $space-2;
+    background: $ink-600;
+    color: $ink-50;
+    font-size: 11px;
+    border-radius: $radius-sm;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity $transition-fast;
+    border: 1px solid $ink-400;
+  }
+  &:hover::after {
+    opacity: 1;
+  }
+}
