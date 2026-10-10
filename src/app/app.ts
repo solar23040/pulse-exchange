@@ -1,12 +1,21 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { SessionService } from './core/services/session.service';
+import { EntryModalComponent } from './features/entry/entry.component';
+import { WorkstationShellComponent } from './features/shell/shell.component';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
+  standalone: true,
+  imports: [CommonModule, EntryModalComponent, WorkstationShellComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
+  styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('pulse-exchange');
+  public sessionService = inject(SessionService);
+
+  public onJoined() {
+    // Session service updated, view toggles to shell
+  }
 }
