@@ -9,6 +9,7 @@ export class WebSocketService {
   private zone = inject(NgZone);
   private ws: WebSocket | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
+  private openTimer: ReturnType<typeof setTimeout> | null = null;
 
   public isConnected = signal(false);
   public isOfflineMode = signal(false);
@@ -35,6 +36,10 @@ export class WebSocketService {
     }
 
     this.connectionStatus.set('connecting');
+    if (this.openTimer) {
+      clearTimeout(this.openTimer);
+      this.openTimer = null;
+    }
 
     // Use current host if no URL provided (allows connecting via local IP network)
     let targetUrl = customUrl;
@@ -50,8 +55,29 @@ export class WebSocketService {
     try {
       this.ws = new WebSocket(targetUrl);
 
+      // Safety net: some dev servers accept the TCP connection but never
+      // answer the WS handshake (no open / error / close events), which
+      // would leave the UI stuck on "connecting" forever. Fall back to the
+      // local simulation engine instead.
+      this.openTimer = setTimeout(() => {
+        this.zone.run(() => {
+          if (this.ws && this.ws.readyState !== WebSocket.OPEN && this.connectionStatus() === 'connecting') {
+            try {
+              this.ws.close();
+            } catch {
+              // Already gone — fall through to offline mode.
+            }
+            this.enableOfflineFallback();
+          }
+        });
+      }, 5000);
+
       this.ws.onopen = () => {
         this.zone.run(() => {
+          if (this.openTimer) {
+            clearTimeout(this.openTimer);
+            this.openTimer = null;
+          }
           this.isConnected.set(true);
           this.isOfflineMode.set(false);
           this.connectionStatus.set('connected');
