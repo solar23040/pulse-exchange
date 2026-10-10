@@ -24,7 +24,8 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
           <form (ngSubmit)="onAuthHost()" class="auth-form">
             <input
               type="password"
-              [(ngModel)]="hostPassword"
+              [ngModel]="hostPassword()"
+              (ngModelChange)="hostPassword.set($event)"
               name="hostPassword"
               placeholder="Enter host password..."
               required
@@ -85,7 +86,7 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
             <div class="control-form">
               <div class="form-group">
                 <label>Target Stock Ticker</label>
-                <select [(ngModel)]="shockTicker" name="shockTicker" class="form-select">
+                <select [ngModel]="shockTicker()" (ngModelChange)="shockTicker.set($event)" name="shockTicker" class="form-select">
                   @for (stock of marketService.stocksList(); track stock.ticker) {
                     <option [value]="stock.ticker">{{ stock.ticker }} — Current ₹{{ stock.price }}</option>
                   }
@@ -100,7 +101,8 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
               <div class="set-price-row">
                 <input
                   type="number"
-                  [(ngModel)]="manualPrice"
+                  [ngModel]="manualPrice()"
+                  (ngModelChange)="manualPrice.set($event)"
                   name="manualPrice"
                   placeholder="Set exact price ₹"
                   class="form-input"
@@ -117,7 +119,7 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
             <div class="control-form">
               <div class="form-group">
                 <label>Select Sector</label>
-                <select [(ngModel)]="shockSector" name="shockSector" class="form-select">
+                <select [ngModel]="shockSector()" (ngModelChange)="shockSector.set($event)" name="shockSector" class="form-select">
                   @for (sec of sectors; track sec) {
                     <option [value]="sec">{{ sectorLabels[sec] }} ({{ sec }})</option>
                   }
@@ -139,13 +141,14 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
               <div class="form-row">
                 <input
                   type="text"
-                  [(ngModel)]="newsTitle"
+                  [ngModel]="newsTitle()"
+                  (ngModelChange)="newsTitle.set($event)"
                   name="newsTitle"
                   placeholder="Announcement Title..."
                   required
                   class="form-input"
                 />
-                <select [(ngModel)]="newsSentiment" name="newsSentiment" class="form-select">
+                <select [ngModel]="newsSentiment()" (ngModelChange)="newsSentiment.set($event)" name="newsSentiment" class="form-select">
                   <option value="bullish">Bullish 🚀</option>
                   <option value="bearish">Bearish 🔻</option>
                   <option value="urgent">Urgent ⚡</option>
@@ -154,7 +157,8 @@ import { Sector, SECTOR_LABELS } from '../../core/models';
               </div>
 
               <textarea
-                [(ngModel)]="newsBody"
+                [ngModel]="newsBody()"
+                (ngModelChange)="newsBody.set($event)"
                 name="newsBody"
                 placeholder="Write announcement body message..."
                 required

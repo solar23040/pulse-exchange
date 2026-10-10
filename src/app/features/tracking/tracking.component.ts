@@ -58,7 +58,8 @@ import { AlertType } from '../../core/models';
               <label>Target Price (₹)</label>
               <input
                 type="number"
-                [(ngModel)]="targetPrice"
+                [ngModel]="targetPrice()"
+                (ngModelChange)="targetPrice.set($event)"
                 name="targetPrice"
                 step="0.1"
                 min="1"

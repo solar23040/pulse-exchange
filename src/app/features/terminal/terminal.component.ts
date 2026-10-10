@@ -1,6 +1,7 @@
-import { Component, signal, computed, inject, ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit, EffectRef, effect } from '@angular/core';
+import { Component, signal, computed, inject, ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { createChart, LineSeries, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts';
 import { MarketService } from '../../core/services/market.service';
 import { SessionService } from '../../core/services/session.service';
 import { OrderSide, OrderType } from '../../core/models';
@@ -19,7 +20,7 @@ import { OrderSide, OrderType } from '../../core/models';
           <div class="stock-select-wrapper">
             <select
               [ngModel]="marketService.selectedTicker()"
-              (ngModelChange)="marketService.selectStock($event)"
+              (ngModelChange)="onStockChange($event)"
               class="ticker-select"
             >
               @for (stock of marketService.stocksList(); track stock.ticker) {
@@ -74,7 +75,18 @@ import { OrderSide, OrderType } from '../../core/models';
           </div>
 
           <div class="canvas-wrapper">
-            <canvas #chartCanvas></canvas>
+            @if (isChartLoading()) {
+              <div class="chart-state">
+                <span class="spinner"></span>
+                <span>Loading live price feed…</span>
+              </div>
+            } @else if (isChartEmpty()) {
+              <div class="chart-state empty">
+                <span class="empty-icon">📉</span>
+                <span>No price data for {{ marketService.selectedTicker() }} yet.</span>
+              </div>
+            }
+            <div #chartContainer class="lw-chart"></div>
           </div>
         </div>
 
@@ -162,7 +174,8 @@ import { OrderSide, OrderType } from '../../core/models';
               <label>Target Price (₹)</label>
               <input
                 type="number"
-                [(ngModel)]="limitPrice"
+                [ngModel]="limitPrice()"
+                (ngModelChange)="limitPrice.set($event)"
                 name="limitPrice"
                 step="0.05"
                 min="1"
@@ -176,7 +189,8 @@ import { OrderSide, OrderType } from '../../core/models';
             <label>Quantity (Shares)</label>
             <input
               type="number"
-              [(ngModel)]="quantity"
+              [ngModel]="quantity()"
+              (ngModelChange)="quantity.set($event)"
               name="quantity"
               min="1"
               step="1"
@@ -219,7 +233,43 @@ import { OrderSide, OrderType } from '../../core/models';
           >
             EXECUTE {{ side().toUpperCase() }} ORDER
           </button>
+
+          @if (validationHint()) {
+            <div class="validation-hint">{{ validationHint() }}</div>
+          }
+          @if (marketService.orderError(); as err) {
+            <div class="order-feedback error" role="alert">
+              <span>⚠️ {{ err }}</span>
+              <button type="button" (click)="marketService.dismissOrderFeedback()">✕</button>
+            </div>
+          }
+          @if (marketService.orderSuccess(); as msg) {
+            <div class="order-feedback success" role="status">
+              <span>✅ {{ msg }}</span>
+              <button type="button" (click)="marketService.dismissOrderFeedback()">✕</button>
+            </div>
+          }
         </form>
+
+        <!-- Recent Orders -->
+        <div class="orders-history">
+          <div class="history-title">RECENT ORDERS ({{ recentOrders().length }})</div>
+          @if (recentOrders().length > 0) {
+            <div class="history-list">
+              @for (order of recentOrders(); track order.id) {
+                <div class="history-row">
+                  <span class="h-side" [class.buy]="order.side === 'buy'" [class.sell]="order.side === 'sell'">
+                    {{ order.side.toUpperCase() }}
+                  </span>
+                  <span class="h-main">{{ order.quantity }} {{ order.ticker }} @ ₹{{ (order.filledPrice ?? order.price ?? 0).toLocaleString('en-IN') }}</span>
+                  <span class="h-status" [class.pending]="order.status === 'pending'">{{ order.status.toUpperCase() }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="history-empty">No orders yet. Your fills and pending orders appear here.</div>
+          }
+        </div>
       </div>
     </div>
   `,
@@ -349,14 +399,44 @@ import { OrderSide, OrderType } from '../../core/models';
       flex: 1;
       position: relative;
       width: 100%;
-      height: 100%;
+      min-height: 320px;
 
-      canvas {
+      .lw-chart {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
       }
+    }
+
+    .chart-state {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(10, 11, 16, 0.7);
+      color: #8b92a8;
+      font-size: 0.85rem;
+      font-weight: 600;
+
+      &.empty { flex-direction: column; }
+      .empty-icon { font-size: 2rem; }
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #7c5bf0;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .position-summary {
@@ -567,13 +647,109 @@ import { OrderSide, OrderType } from '../../core/models';
         cursor: not-allowed;
       }
     }
+
+    .validation-hint {
+      font-size: 0.78rem;
+      color: #f5a623;
+      font-weight: 600;
+    }
+
+    .order-feedback {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+
+      button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        font-size: 0.8rem;
+      }
+
+      &.error {
+        background: rgba(240, 72, 100, 0.12);
+        border: 1px solid rgba(240, 72, 100, 0.35);
+        color: #ff94a5;
+      }
+
+      &.success {
+        background: rgba(34, 217, 127, 0.1);
+        border: 1px solid rgba(34, 217, 127, 0.3);
+        color: #5eeaa0;
+      }
+    }
+
+    .orders-history {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 12px;
+    }
+
+    .history-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #8b92a8;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.76rem;
+      background: rgba(10, 11, 16, 0.5);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+
+    .h-side {
+      font-weight: 800;
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+
+      &.buy { background: rgba(34, 217, 127, 0.15); color: #22d97f; }
+      &.sell { background: rgba(240, 72, 100, 0.15); color: #f04864; }
+    }
+
+    .h-main { color: #c4c9d8; flex: 1; }
+
+    .h-status {
+      color: #22d97f;
+      font-weight: 700;
+      font-size: 0.68rem;
+
+      &.pending { color: #f5a623; }
+    }
+
+    .history-empty {
+      font-size: 0.78rem;
+      color: #5a6178;
+      font-style: italic;
+    }
   `]
 })
-export class TradingTerminalComponent implements AfterViewInit {
+export class TradingTerminalComponent implements AfterViewInit, OnDestroy {
   public marketService = inject(MarketService);
   public sessionService = inject(SessionService);
 
-  @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartContainer') chartContainer!: ElementRef<HTMLDivElement>;
 
   public side = signal<OrderSide>('buy');
   public orderType = signal<OrderType>('market');
@@ -583,8 +759,20 @@ export class TradingTerminalComponent implements AfterViewInit {
 
   public timeframes = ['1m', '5m', '15m', '1h', '1d'];
 
+  private chart: IChartApi | null = null;
+  private lineSeries: ISeriesApi<'Line'> | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private lastChartTicker: string | null = null;
+
   public selectedStock = computed(() => this.marketService.selectedStock());
   public userPosition = computed(() => this.marketService.userPositionForSelected());
+  public recentOrders = computed(() => this.marketService.orders().slice(0, 8));
+
+  public isChartLoading = computed(() => !this.selectedStock());
+  public isChartEmpty = computed(() => {
+    const stock = this.selectedStock();
+    return !!stock && (!stock.sparklineData || stock.sparklineData.length === 0);
+  });
 
   public executionPrice = computed(() => {
     if (this.orderType() !== 'market' && this.limitPrice() > 0) {
@@ -597,18 +785,79 @@ export class TradingTerminalComponent implements AfterViewInit {
     return Math.round(this.executionPrice() * this.quantity());
   });
 
+  public validationHint = computed(() => {
+    const qty = this.quantity();
+    if (!Number.isInteger(qty) || qty <= 0) return 'Enter a whole quantity of at least 1 share.';
+    const stock = this.selectedStock();
+    if (!stock) return 'Waiting for the live price feed…';
+    if (this.orderType() !== 'market' && this.limitPrice() <= 0) {
+      return 'Set a target price above ₹0 for limit / stop orders.';
+    }
+    if (this.side() === 'buy') {
+      const cash = this.sessionService.player()?.cash || 0;
+      if (cash < this.estimatedCost()) {
+        return `Insufficient balance: needs ₹${this.estimatedCost().toLocaleString('en-IN')}, available ₹${Math.round(cash).toLocaleString('en-IN')}.`;
+      }
+    } else {
+      const pos = this.userPosition();
+      if (!pos || pos.quantity < qty) {
+        return `You hold ${pos ? pos.quantity : 0} ${stock.ticker}; reduce the sell quantity.`;
+      }
+    }
+    return null;
+  });
+
   constructor() {
+    // Refresh the chart whenever the selected asset, its live ticks, or the
+    // timeframe window changes. Guarded until ngAfterViewInit creates it.
     effect(() => {
       const stock = this.selectedStock();
-      if (stock) {
-        this.limitPrice.set(stock.price);
-        this.drawChart();
-      }
+      this.selectedTimeframe();
+      if (stock) this.updateChart();
     });
   }
 
+  public onStockChange(ticker: string) {
+    this.marketService.selectStock(ticker);
+    const stock = this.marketService.selectedStock();
+    if (stock) {
+      this.limitPrice.set(stock.price);
+    }
+  }
+
   ngAfterViewInit() {
-    this.drawChart();
+    const el = this.chartContainer.nativeElement;
+    this.chart = createChart(el, {
+      layout: { background: { color: 'transparent' }, textColor: '#8b92a8' },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.05)' }
+      },
+      rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+      timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)', timeVisible: true },
+      width: el.clientWidth,
+      height: el.clientHeight || 320
+    });
+    this.lineSeries = this.chart.addSeries(LineSeries, { lineWidth: 2, priceLineVisible: true });
+    this.updateChart(true);
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.chart) return;
+      const w = el.clientWidth;
+      const h = el.clientHeight || 320;
+      if (w > 0 && h > 0) this.chart.applyOptions({ width: w, height: h });
+    });
+    this.resizeObserver.observe(el);
+  }
+
+  ngOnDestroy() {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    if (this.chart) {
+      this.chart.remove();
+      this.chart = null;
+      this.lineSeries = null;
+    }
   }
 
   public setQty(val: number) {
@@ -644,10 +893,11 @@ export class TradingTerminalComponent implements AfterViewInit {
   }
 
   public onSubmitOrder() {
-    if (!this.isValidOrder()) return;
     const stock = this.selectedStock();
-    if (!stock) return;
-
+    if (!stock) {
+      this.marketService.placeOrder(this.marketService.selectedTicker(), this.side(), this.orderType(), this.quantity());
+      return;
+    }
     this.marketService.placeOrder(
       stock.ticker,
       this.side(),
@@ -657,76 +907,32 @@ export class TradingTerminalComponent implements AfterViewInit {
     );
   }
 
-  private drawChart() {
-    if (!this.chartCanvas) return;
-    const canvas = this.chartCanvas.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  private timeframeWindow(): number {
+    switch (this.selectedTimeframe()) {
+      case '1m': return 12;
+      case '5m': return 24;
+      case '15m': return 40;
+      default: return 60;
+    }
+  }
 
-    // Handle high DPI scaling
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-    const width = rect.width;
-    const height = rect.height;
-
-    ctx.clearRect(0, 0, width, height);
-
+  private updateChart(fit = false) {
+    if (!this.chart || !this.lineSeries) return;
     const stock = this.selectedStock();
     if (!stock || !stock.sparklineData || stock.sparklineData.length === 0) return;
 
-    const data = stock.sparklineData;
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min || 1;
+    const data = stock.sparklineData.slice(-this.timeframeWindow());
+    const nowSec = Math.floor(Date.now() / 1000);
+    const start = nowSec - (data.length - 1) * 5;
+    this.lineSeries.setData(
+      data.map((value, i) => ({ time: (start + i * 5) as UTCTimestamp, value: Math.round(value * 100) / 100 }))
+    );
+    const color = stock.change >= 0 ? '#22d97f' : '#f04864';
+    this.lineSeries.applyOptions({ color, lineWidth: 2 });
 
-    // Draw Grid Lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.lineWidth = 1;
-
-    for (let i = 1; i <= 4; i++) {
-      const y = (height / 5) * i;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
+    if (fit || this.lastChartTicker !== stock.ticker) {
+      this.lastChartTicker = stock.ticker;
+      this.chart.timeScale().fitContent();
     }
-
-    // Chart Gradient Fill
-    const isGain = stock.change >= 0;
-    const strokeColor = isGain ? '#22d97f' : '#f04864';
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, isGain ? 'rgba(34, 217, 127, 0.25)' : 'rgba(240, 72, 100, 0.25)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-    ctx.beginPath();
-    const points: { x: number; y: number }[] = [];
-
-    data.forEach((val, idx) => {
-      const x = (idx / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * (height - 40) - 20;
-      points.push({ x, y });
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-
-    // Fill Area
-    ctx.lineTo(width, height);
-    ctx.lineTo(0, height);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Draw Line
-    ctx.beginPath();
-    points.forEach((pt, idx) => {
-      if (idx === 0) ctx.moveTo(pt.x, pt.y);
-      else ctx.lineTo(pt.x, pt.y);
-    });
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
   }
 }

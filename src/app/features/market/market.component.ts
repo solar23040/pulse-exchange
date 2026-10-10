@@ -19,7 +19,8 @@ import { SECTOR_LABELS, Sector } from '../../core/models';
           <input
             type="text"
             placeholder="Search stock ticker, company name..."
-            [(ngModel)]="searchQuery"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
             class="search-input"
           />
         </div>

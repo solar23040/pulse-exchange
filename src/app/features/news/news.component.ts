@@ -25,7 +25,8 @@ import { Sentiment, NewsItem } from '../../core/models';
           <input
             type="text"
             placeholder="Search headline or ticker..."
-            [(ngModel)]="searchQuery"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
             class="search-input"
           />
         </div>
