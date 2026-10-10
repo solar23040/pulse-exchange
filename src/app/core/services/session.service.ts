@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { Player, PlayerRole } from '../models';
+import { generateUuid } from '../utils';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,7 @@ export class SessionService {
   }
 
   public join(name: string, role: PlayerRole, firm?: string): void {
-    const id = crypto.randomUUID();
+    const id = generateUuid();
     const initialCash = role === 'bank' ? 100000000 : 1000000;
     
     const newPlayer: Player = {

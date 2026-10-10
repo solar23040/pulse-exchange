@@ -4,6 +4,7 @@ import { WebSocketService } from './websocket.service';
 import { SessionService } from './session.service';
 import { AudioService } from './audio.service';
 import { COMPANY_LIST, Company, MarketTick, SectorIndex, LeaderboardEntry, NewsItem, Alert, Portfolio, SessionState, PlayerRole, ServerMessage } from '../models';
+import { generateUuid } from '../utils';
 
 export interface EnrichedCompany extends Company {
   price: number;
@@ -185,7 +186,7 @@ export class MarketService {
   }
 
   public createAlert(ticker: string, alertType: 'take-profit' | 'stop-loss' | 'delta-velocity', targetPrice?: number, deltaThreshold?: number) {
-    const alertId = crypto.randomUUID();
+    const alertId = generateUuid();
     const newAlert: Alert = {
       id: alertId,
       ticker,

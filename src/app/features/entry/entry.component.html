@@ -1,0 +1,194 @@
+<div class="entry-overlay">
+  <!-- Dynamic Ambient Glow & Grid -->
+  <div class="glow-orb orb-violet"></div>
+  <div class="glow-orb orb-ice"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Main Glassmorphism Modal Card -->
+  <div class="entry-modal glass-strong" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    
+    <!-- Top Error Toast Notification -->
+    @if (errorMessage(); as error) {
+      <div class="error-toast" role="alert">
+        <div class="toast-left">
+          <span class="toast-icon">⚠️</span>
+          <span class="toast-text">{{ error }}</span>
+        </div>
+        <button type="button" class="toast-close" (click)="dismissError()" aria-label="Dismiss error">✕</button>
+      </div>
+    }
+
+    <!-- Header Section -->
+    <header class="modal-header">
+      <div class="brand-pill">
+        <span class="live-dot"></span>
+        <span class="brand-tag">PULSE EXCHANGE</span>
+        <span class="version-tag">v2.4</span>
+      </div>
+      <h1 id="modal-title" class="modal-title">Live Trading Floor</h1>
+      <p class="modal-subtitle">Institutional &amp; Retail High-Frequency Simulation</p>
+    </header>
+
+    <!-- WebSocket Live Connection Indicator -->
+    <div class="connection-pill" [ngClass]="wsService.connectionStatus()">
+      <span class="pulse-indicator"></span>
+      <span class="connection-label">
+        @switch (wsService.connectionStatus()) {
+          @case ('connected') {
+            EXCHANGE ONLINE &bull; LOW LATENCY CONNECTED
+          }
+          @case ('connecting') {
+            CONNECTING TO EXCHANGE NETWORK...
+          }
+          @case ('offline') {
+            LOCAL SIMULATION ACTIVE &bull; OFFLINE ENGINE
+          }
+          @default {
+            RECONNECTING TO SERVER...
+          }
+        }
+      </span>
+    </div>
+
+    <!-- Entry Form -->
+    <form (ngSubmit)="onEnterFloor()" class="entry-form" novalidate>
+
+      <!-- Role Selection -->
+      <div class="form-section">
+        <div class="section-label-row">
+          <label class="section-label">Select Floor Access Tier</label>
+          <span class="tier-hint">Capital allocation level</span>
+        </div>
+
+        <div class="role-grid">
+          <!-- Retail Trader Card -->
+          <button
+            type="button"
+            class="role-card retail"
+            [class.active]="role() === 'retail'"
+            (click)="selectRole('retail')"
+          >
+            <div class="role-card-inner">
+              <div class="role-header">
+                <span class="role-icon">👤</span>
+                <span class="role-badge">RETAIL</span>
+              </div>
+              <div class="role-title">Retail Trader</div>
+              <div class="role-capital">₹10,00,000</div>
+              <div class="role-desc">Standard liquidity, portfolio leverage</div>
+            </div>
+            <div class="role-radio-marker">
+              @if (role() === 'retail') {
+                <span class="check-mark">✓</span>
+              }
+            </div>
+          </button>
+
+          <!-- Bank / VIP Card -->
+          <button
+            type="button"
+            class="role-card bank"
+            [class.active]="role() === 'bank'"
+            (click)="selectRole('bank')"
+          >
+            <div class="role-card-inner">
+              <div class="role-header">
+                <span class="role-icon">🏛️</span>
+                <span class="role-badge vip">VIP DESK</span>
+              </div>
+              <div class="role-title">Bank / Institutional</div>
+              <div class="role-capital">₹10,00,00,000</div>
+              <div class="role-desc">Block order book access, prime syndicate</div>
+            </div>
+            <div class="role-radio-marker">
+              @if (role() === 'bank') {
+                <span class="check-mark">✓</span>
+              }
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Trader Name Input -->
+      <div class="form-section">
+        <div class="section-label-row">
+          <label for="trader-name" class="section-label">Trader Display Name</label>
+          <span class="char-count" [class.error]="name().length > 30">{{ name().length }}/30</span>
+        </div>
+
+        <div class="input-container" [class.has-error]="touched() && nameValidationError()">
+          <span class="input-icon">⌨</span>
+          <input
+            id="trader-name"
+            type="text"
+            [ngModel]="name()"
+            (ngModelChange)="onNameChange($event)"
+            (blur)="markTouched()"
+            name="traderName"
+            placeholder="e.g. Maverick, AlphaQuants, HorizonDesk"
+            maxlength="30"
+            autocomplete="off"
+            class="terminal-input"
+            required
+          />
+        </div>
+
+        @if (touched() && nameValidationError(); as validationErr) {
+          <div class="validation-error">
+            <span class="err-icon">✕</span>
+            <span>{{ validationErr }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Firm Name Input (Only if Bank Role) -->
+      @if (role() === 'bank') {
+        <div class="form-section firm-section">
+          <div class="section-label-row">
+            <label for="firm-name" class="section-label">Institution / Firm Name</label>
+            <span class="firm-hint">Optional desk moniker</span>
+          </div>
+
+          <div class="input-container">
+            <span class="input-icon">🏢</span>
+            <input
+              id="firm-name"
+              type="text"
+              [ngModel]="firmName()"
+              (ngModelChange)="onFirmChange($event)"
+              name="firmName"
+              placeholder="e.g. Citadel, Morgan Stanley, Apex Capital"
+              maxlength="50"
+              autocomplete="off"
+              class="terminal-input"
+            />
+          </div>
+          <span class="sub-hint">Shown in high-volume trade tape and institutional leaderboard</span>
+        </div>
+      }
+
+      <!-- Enter Floor Button -->
+      <button
+        type="submit"
+        class="enter-floor-btn"
+        [disabled]="!canEnterFloor()"
+      >
+        @if (isConnecting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="btn-text">ENTERING THE FLOOR...</span>
+        } @else {
+          <span class="btn-text">ENTER THE FLOOR</span>
+          <span class="btn-arrow">&rarr;</span>
+        }
+      </button>
+
+    </form>
+
+    <!-- Footer Note -->
+    <footer class="modal-footer">
+      <span class="security-dot"></span>
+      <span>Simulated Indian Equities Environment &bull; No Real Capital Exposed</span>
+    </footer>
+
+  </div>
+</div>
