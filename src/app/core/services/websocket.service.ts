@@ -29,15 +29,26 @@ export class WebSocketService {
     }
   }
 
-  public connect(url = 'ws://localhost:4200'): void {
+  public connect(customUrl?: string): void {
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
       return;
     }
 
     this.connectionStatus.set('connecting');
 
+    // Use current host if no URL provided (allows connecting via local IP network)
+    let targetUrl = customUrl;
+    if (!targetUrl) {
+      if (typeof window !== 'undefined') {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        targetUrl = `${protocol}//${window.location.host}`;
+      } else {
+        targetUrl = 'ws://localhost:4200';
+      }
+    }
+
     try {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(targetUrl);
 
       this.ws.onopen = () => {
         this.zone.run(() => {
@@ -68,7 +79,7 @@ export class WebSocketService {
           if (this.connectionStatus() !== 'offline') {
             this.connectionStatus.set('disconnected');
             // Try reconnecting after 3 seconds
-            setTimeout(() => this.connect(url), 3000);
+            setTimeout(() => this.connect(customUrl), 3000);
           }
         });
       };

@@ -14,9 +14,12 @@ const PORT = process.env.PORT || 4200;
 const HOST_PASSWORD = process.env.HOST_PASSWORD || 'pulseadmin';
 const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || '500', 10);
 
+const path = require('path');
+const distPath = path.join(__dirname, '../dist/pulse-exchange/browser');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(distPath));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -406,9 +409,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+// SPA routing fallback
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    const indexPath = path.join(distPath, 'index.html');
+    return res.sendFile(indexPath);
+  }
+  next();
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`===================================================`);
-  console.log(`  PULSE EXCHANGE Backend Server Running on Port ${PORT}`);
-  console.log(`  WebSocket Endpoint: ws://localhost:${PORT}`);
+  console.log(`  PULSE EXCHANGE Backend & Client Running`);
+  console.log(`  Local Access:   http://localhost:${PORT}`);
+  console.log(`  Network Access: http://<your-machine-ip>:${PORT}`);
   console.log(`===================================================`);
 });

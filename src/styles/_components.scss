@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use 'tokens' as *;
 
 // === Buttons ===
@@ -43,7 +44,7 @@
   @extend .btn;
   background: $gain;
   color: $ink-900;
-  &:hover { background: lighten($gain, 5%); }
+  &:hover { background: color.adjust($gain, $lightness: 5%); }
   &:active { background: $gain-dim; color: white; }
 }
 
@@ -51,7 +52,7 @@
   @extend .btn;
   background: $loss;
   color: white;
-  &:hover { background: lighten($loss, 8%); }
+  &:hover { background: color.adjust($loss, $lightness: 8%); }
   &:active { background: $loss-dim; }
 }
 
